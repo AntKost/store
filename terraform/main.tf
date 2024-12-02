@@ -36,11 +36,19 @@ resource "aws_security_group" "store_sg" {
   vpc_id      = data.terraform_remote_state.shared.outputs.vpc_id
 
   ingress {
-    from_port       = var.container_port
-    to_port         = var.container_port
+    from_port       = var.host_port
+    to_port         = var.host_port
     protocol        = "tcp"
     security_groups = [data.terraform_remote_state.shared.outputs.alb_security_group_id]
     description     = "Allow HTTP traffic from ALB"
+  }
+
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [data.terraform_remote_state.shared.outputs.db_security_group_id]
+    description     = "Allow HTTP traffic from RDS"
   }
 
   egress {
@@ -58,7 +66,7 @@ resource "aws_security_group" "store_sg" {
 # ALB Target Group for Store Service
 resource "aws_lb_target_group" "store_tg" {
   name        = "store-tg"
-  port        = var.container_port
+  port        = var.host_port
   protocol    = "HTTP"
   vpc_id      = data.terraform_remote_state.shared.outputs.vpc_id
   target_type = "ip"
@@ -80,7 +88,7 @@ resource "aws_lb_target_group" "store_tg" {
 # ALB Listener for Store Service
 resource "aws_lb_listener" "store_listener" {
   load_balancer_arn = data.terraform_remote_state.shared.outputs.alb_arn
-  port              = var.container_port
+  port              = var.host_port
   protocol          = "HTTP"
 
   default_action {
@@ -165,37 +173,29 @@ resource "aws_ecs_task_definition" "store" {
     image = var.store_image
     portMappings = [{
       containerPort = var.container_port
-      hostPort      = var.container_port
+      hostPort      = var.host_port
       protocol      = "tcp"
     }]
     environment = [
       {
-        name  = "MQTT_BROKER_HOST"
-        value = "${data.terraform_remote_state.shared.outputs.mqtt_service_discovery_name}.${data.terraform_remote_state.shared.outputs.ecs_cluster_name}.local" # Adjust as needed
-      },
-      {
-        name  = "MQTT_BROKER_PORT"
-        value = "1883"
-      },
-      {
-        name  = "REDIS_HOST"
-        value = "${data.terraform_remote_state.shared.outputs.mqtt_service_discovery_name}.${data.terraform_remote_state.shared.outputs.ecs_cluster_name}.local"
-      },
-      {
-        name  = "REDIS_PORT"
-        value = "6379"
-      },
-      {
-        name  = "DB_HOST"
-        value = data.terraform_remote_state.shared.outputs.rds_endpoint
-      },
-      {
-        name  = "DB_USER"
+        name  = "POSTGRES_USER"
         value = "postgres"
       },
       {
-        name  = "DB_PASSWORD"
-        value = var.db_password
+        name  = "POSTGRES_PASSWORD"
+        value = "var.db_password"
+      },
+      {
+        name  = "POSTGRES_DB"
+        value = "road_vision"
+      },
+      {
+        name  = "POSTGRES_PORT"
+        value = "5432"
+      },
+      {
+        name  = "POSTGRES_HOST"
+        value = data.terraform_remote_state.shared.outputs.rds_endpoint
       }
     ]
   }])

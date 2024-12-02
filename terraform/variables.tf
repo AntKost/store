@@ -40,6 +40,12 @@ variable "container_port" {
   default     = 8000
 }
 
+variable "host_port" {
+  description = "Port on which the Store host listens"
+  type        = number
+  default     = 8001
+}
+
 variable "db_password" {
   description = "RDS PostgreSQL DB password"
   type = string

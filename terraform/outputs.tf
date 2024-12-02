@@ -8,6 +8,10 @@ output "store_service_discovery_arn" {
   value       = aws_service_discovery_service.store.arn
 }
 
+output "store_service_discovery_name" {
+  value = aws_service_discovery_service.store.name
+}
+
 output "store_task_definition_arn" {
   description = "ARN of the Store task definition"
   value       = aws_ecs_task_definition.store.arn
