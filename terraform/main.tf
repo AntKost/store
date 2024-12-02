@@ -93,6 +93,65 @@ resource "aws_lb_listener" "store_listener" {
   }
 }
 
+# ECR Repository for Store Service
+resource "aws_ecr_repository" "store" {
+  name                 = var.store_ecr_repository_name
+  image_tag_mutability = var.image_tag_mutability
+
+  encryption_configuration {
+    encryption_type = var.encryption_configuration.encryption_type
+    kms_key         = var.encryption_configuration.kms_key != "" ? var.encryption_configuration.kms_key : null
+  }
+
+  tags = {
+    Name        = "store-ecr-repository"
+  }
+}
+
+# IAM Policy for ECR Push/Pull Access
+resource "aws_iam_policy" "store_ecr_policy" {
+  name        = "store-ecr-policy"
+  description = "IAM policy for Store service to access ECR repository"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:BatchCheckLayerAvailability"
+        ]
+        Resource = aws_ecr_repository.store.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:PutImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload"
+        ]
+        Resource = aws_ecr_repository.store.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Attach the ECR policy to the ECS Task Execution Role
+resource "aws_iam_role_policy_attachment" "store_ecr_attachment" {
+  policy_arn = aws_iam_policy.store_ecr_policy.arn
+  role       = data.terraform_remote_state.shared.outputs.ecs_task_execution_role_arn
+}
+
 # Store Task Definition
 resource "aws_ecs_task_definition" "store" {
   family                   = "store"

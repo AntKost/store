@@ -27,3 +27,18 @@ output "store_listener_arn" {
   description = "ARN of the Store ALB Listener"
   value       = aws_lb_listener.store_listener.arn
 }
+
+output "store_ecr_repository_url" {
+  description = "URL of the Store ECR repository"
+  value       = aws_ecr_repository.store.repository_url
+}
+
+output "store_ecr_repository_arn" {
+  description = "ARN of the Store ECR repository"
+  value       = aws_ecr_repository.store.arn
+}
+
+output "store_ecr_policy_arn" {
+  description = "ARN of the Store ECR IAM policy"
+  value       = aws_iam_policy.store_ecr_policy.arn
+}

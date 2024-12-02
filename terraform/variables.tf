@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "store_image" {
   description = "Docker image for the Store service"
   type        = string
-  default     = "your-docker-image:latest"
+  default     = "docker-image:latest"
 }
 
 variable "store_cpu" {
@@ -44,4 +44,28 @@ variable "db_password" {
   description = "RDS PostgreSQL DB password"
   type = string
   sensitive = true
+}
+
+variable "store_ecr_repository_name" {
+  description = "Name of the ECR repository for the Store service"
+  type        = string
+  default     = "store-repo"
+}
+
+variable "image_tag_mutability" {
+  description = "Image tag mutability setting"
+  type        = string
+  default     = "MUTABLE"
+}
+
+variable "encryption_configuration" {
+  description = "Encryption settings for the ECR repository"
+  type = object({
+    encryption_type = string
+    kms_key         = string
+  })
+  default = {
+    encryption_type = "AES256"
+    kms_key         = ""
+  }
 }
