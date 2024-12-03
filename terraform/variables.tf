@@ -19,7 +19,7 @@ variable "store_cpu" {
 variable "store_memory" {
   description = "Memory (in MiB) for the Store task"
   type        = string
-  default     = "512"
+  default     = "256"
 }
 
 variable "desired_count" {

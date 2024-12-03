@@ -214,7 +214,6 @@ resource "aws_ecs_service" "store" {
   network_configuration {
     subnets         = data.terraform_remote_state.shared.outputs.public_subnet_ids
     security_groups = [aws_security_group.store_sg.id, data.terraform_remote_state.shared.outputs.ecs_instance_security_group_id]
-    assign_public_ip = true
   }
 
   service_registries {
