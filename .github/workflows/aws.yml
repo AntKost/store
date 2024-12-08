@@ -85,9 +85,9 @@ jobs:
         id: tf_outputs
         shell: bash
         run: |
-          STORE_TASK_DEF_NEW=$(terraform output -raw store_task_definition_arn)
-          STORE_CODEDEPLOY_APP_NAME=$(terraform output -raw codedeploy_store_app_name)
-          STORE_CODEDEPLOY_DEPLOYMENT_GROUP=$(terraform output -raw codedeploy_store_deployment_group_name)
+          STORE_TASK_DEF_NEW=$(terraform -chdir=./terraform output -raw store_task_definition_arn)
+          STORE_CODEDEPLOY_APP_NAME=$(terraform -chdir=./terraform output -raw codedeploy_store_app_name)
+          STORE_CODEDEPLOY_DEPLOYMENT_GROUP=$(terraform -chdir=./terraform output -raw codedeploy_store_deployment_group_name)
           echo "store_task_def_new=$STORE_TASK_DEF_NEW" >> $GITHUB_OUTPUT
           echo "store_codedeploy_app=$STORE_CODEDEPLOY_APP_NAME" >> $GITHUB_OUTPUT
           echo "store_codedeploy_deploy_group=$STORE_CODEDEPLOY_DEPLOYMENT_GROUP" >> $GITHUB_OUTPUT
