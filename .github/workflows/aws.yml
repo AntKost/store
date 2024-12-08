@@ -67,18 +67,22 @@ jobs:
       - name: Terraform Plan
         env:
           TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
+          TF_VAR_store_image: ${{ steps.build.outputs.IMAGE_URI }}
         id: plan
         run: |
           cd ./terraform
+          echo $TF_VAR_store_image
           terraform plan -out=tfplan
 
       - name: Terraform Apply
         id: apply
         env:
           TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
+          TF_VAR_store_image: ${{ steps.build.outputs.IMAGE_URI }}
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           cd ./terraform
+          echo $TF_VAR_store_image
           terraform apply -auto-approve tfplan
 
       - name: Get Terraform Outputs
@@ -96,17 +100,6 @@ jobs:
           echo "store_codedeploy_app=$STORE_CODEDEPLOY_APP_NAME"
           echo "store_codedeploy_deploy_group=$STORE_CODEDEPLOY_DEPLOYMENT_GROUP"
       
-      - name: Get task-definition
-        run: aws ecs describe-task-definition --task-definition "store" --query taskDefinition > task-definition.json
-
-      - name: Fill in the new image ID in the Amazon ECS task definition
-        id: update-task-def-image
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: task-definition.json
-          container-name: store
-          image: ${{ steps.build.outputs.IMAGE_URI }}
-
       - name: Generate STORE AppSpec and Task Definition
         if: ${{ steps.get_task_def.outputs.STORE_TASK_DEF_LAST != steps.tf_outputs.outputs.store_task_def_new }}
         env:
@@ -134,8 +127,10 @@ jobs:
           }
           EOF
           cat store_appspec.json
+          aws ecs describe-task-definition --task-definition "store" --query taskDefinition > task-definition.json
 
       - name: ECS task deployment using CodeDeploy
+        if: ${{ steps.get_task_def.outputs.STORE_TASK_DEF_LAST != steps.tf_outputs.outputs.store_task_def_new }}
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         env:
           ACTIONS_STEP_DEBUG: true #enable step debug logging
