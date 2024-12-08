@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - store
+name: CI/CD Pipeline - Store
 
 on:
   push:
@@ -13,6 +13,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.0"
+          terraform_wrapper: false
+      
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -34,18 +40,20 @@ jobs:
           docker tag store-service:${IMAGE_TAG} $ECR_REGISTRY/${{ vars.store_ecr_repository_name }}:${IMAGE_TAG}
           docker push $ECR_REGISTRY/${{ vars.store_ecr_repository_name }}:${IMAGE_TAG}
           echo "IMAGE_URI=$ECR_REGISTRY/${{ vars.store_ecr_repository_name }}:${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: "1.10.0"
-
+  
       - name: Configure AWS Credentials for Terraform
         run: |
           aws --version
           aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} --profile rv-terraform
           aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --profile rv-terraform
 
+      - name: Get current task definition
+        id: get_task_def
+        run: |
+          STORE_TASK_DEF_LAST=$(aws ecs describe-task-definition --task-definition="store" | jq '.taskDefinition.taskDefinitionArn')
+          echo $STORE_TASK_DEF_LAST
+          echo "store_task_def_last=$STORE_TASK_DEF_LAST" >> $GITHUB_OUTPUT
+  
       - name: Terraform Init
         run: terraform init
 
@@ -55,13 +63,64 @@ jobs:
       - name: Terraform Plan
         env:
           TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
-          TF_VAR_store_image: ${{ steps.build.outputs.IMAGE_URI }}
         id: plan
         run: terraform plan -out=tfplan
 
       - name: Terraform Apply
+        id: apply
         env:
           TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
-          TF_VAR_store_image: ${{ steps.build.outputs.IMAGE_URI }}
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve tfplan
+
+      - name: Get Terraform Outputs
+        id: tf_outputs
+        shell: bash
+        run: |
+          STORE_TASK_DEF_NEW=$(terraform output -raw store_task_definition_arn)
+          STORE_CODEDEPLOY_APP_NAME=$(terraform output -raw codedeploy_store_app_name)
+          STORE_CODEDEPLOY_DEPLOYMENT_GROUP=$(terraform output -raw codedeploy_store_deployment_group_name)
+          echo "store_task_def_new=$STORE_TASK_DEF_NEW" >> $GITHUB_OUTPUT
+          echo "store_codedeploy_app=$STORE_CODEDEPLOY_APP_NAME" >> $GITHUB_OUTPUT
+          echo "store_codedeploy_deploy_group=$STORE_CODEDEPLOY_DEPLOYMENT_GROUP" >> $GITHUB_OUTPUT
+          echo "Terraform outputs retrieved:"
+          echo "store_task_def_new=$STORE_TASK_DEF_NEW"
+          echo "store_codedeploy_app=$STORE_CODEDEPLOY_APP_NAME"
+          echo "store_codedeploy_deploy_group=$STORE_CODEDEPLOY_DEPLOYMENT_GROUP"
+
+      - name: Generate STORE AppSpec and Task Definition
+        if: ${{ steps.get_task_def.outputs.STORE_TASK_DEF_LAST != steps.tf_outputs.outputs.store_task_def_new }}
+        run: |
+          cat <<EOF > store_appspec.json
+          {
+            "version": 1,
+            "Resources": [
+              {
+                "TargetService": {
+                  "Type": "AWS::ECS::Service",
+                  "Properties": {
+                    "TaskDefinition": "",
+                    "LoadBalancerInfo": {
+                      "ContainerName": "store",
+                      "ContainerPort": 8000
+                    }
+                  }
+                }
+              }
+            ]
+          }
+          EOF
+          aws ecs describe-task-definition --task-definition "store" --query taskDefinition > task-definition.json
+
+      - name: ECS task deployment using CodeDeploy
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        env:
+          ACTIONS_STEP_DEBUG: true #enable step debug logging
+        with:
+          task-definition: task-definition.json
+          service: store-service
+          cluster: road-vision-cluster
+          wait-for-service-stability: false
+          codedeploy-appspec: store_appspec.json
+          codedeploy-application: store-codedeploy-app
+          codedeploy-deployment-group: store-deployment-group

@@ -24,7 +24,7 @@ output "store_security_group_id" {
 
 output "store_target_group_arn" {
   description = "ARN of the Store ALB Target Group"
-  value       = aws_lb_target_group.store_tg.arn
+  value       = aws_lb_target_group.store_tg_blue.arn
 }
 
 output "store_listener_arn" {
@@ -45,4 +45,12 @@ output "store_ecr_repository_arn" {
 output "store_ecr_policy_arn" {
   description = "ARN of the Store ECR IAM policy"
   value       = aws_iam_policy.store_ecr_policy.arn
+}
+
+output "codedeploy_store_app_name" {
+  value = aws_codedeploy_app.store.name
+}
+
+output "codedeploy_store_deployment_group_name" {
+  value = aws_codedeploy_deployment_group.store.deployment_group_name
 }

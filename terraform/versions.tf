@@ -12,11 +12,11 @@ terraform {
     region         = "eu-central-1"                      
     dynamodb_table = "terraform-locks"                   # DynamoDB table for state locking
     encrypt        = true
-    profile = "rv-terraform"
+    profile        = "rv-terraform"
   }
 }
 
 provider "aws" {
-  region = var.aws_region
-  profile = "rv-terraform"
+  region    = var.aws_region
+  profile   = "rv-terraform"
 }

@@ -7,19 +7,19 @@ variable "aws_region" {
 variable "store_image" {
   description = "Docker image for the Store service"
   type        = string
-  default     = "docker-image:latest"
+  default     = "store:latest"
 }
 
 variable "store_cpu" {
   description = "CPU units for the Store task"
   type        = string
-  default     = "256"
+  default     = "512"
 }
 
 variable "store_memory" {
   description = "Memory (in MiB) for the Store task"
   type        = string
-  default     = "256"
+  default     = "512"
 }
 
 variable "desired_count" {

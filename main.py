@@ -189,6 +189,10 @@ def delete_processed_agent_data(processed_agent_data_id: int):
         if result is None:
             raise HTTPException(status_code=404, detail="ProcessedAgentData not found")
         return result
+    
+@app.get("/health")
+async def healthcheck():
+    return {"status": "ok"}
 
 
 if __name__ == "__main__":
