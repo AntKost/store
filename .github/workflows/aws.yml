@@ -95,6 +95,14 @@ jobs:
           echo "store_task_def_new=$STORE_TASK_DEF_NEW"
           echo "store_codedeploy_app=$STORE_CODEDEPLOY_APP_NAME"
           echo "store_codedeploy_deploy_group=$STORE_CODEDEPLOY_DEPLOYMENT_GROUP"
+      
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: update-task-def-image
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: store
+          image: ${{ steps.build.outputs.image_uri }}
 
       - name: Generate STORE AppSpec and Task Definition
         if: ${{ steps.get_task_def.outputs.STORE_TASK_DEF_LAST != steps.tf_outputs.outputs.store_task_def_new }}
@@ -124,14 +132,6 @@ jobs:
           EOF
           aws ecs describe-task-definition --task-definition "store" --query taskDefinition > task-definition.json
           cat store_appspec.json
-
-      - name: Fill in the new image ID in the Amazon ECS task definition
-        id: update-task-def-image
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: task-definition.json
-          container-name: store
-          image: ${{ steps.build.outputs.image_uri }}
 
       - name: ECS task deployment using CodeDeploy
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
