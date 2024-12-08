@@ -67,18 +67,16 @@ resource "aws_security_group" "store_sg" {
 resource "aws_lb_target_group" "store_tg_blue" {
   name        = "store-tg-blue"
   port        = var.host_port
-  protocol    = "HTTP"
+  protocol    = "TCP"
   vpc_id      = data.terraform_remote_state.shared.outputs.vpc_id
   target_type = "ip"
 
   health_check {
-    path                = "/health"
-    protocol            = "HTTP"
+    protocol            = "TCP"
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
     unhealthy_threshold = 2
-    matcher             = "200"
   }
 
   tags = {
@@ -89,18 +87,16 @@ resource "aws_lb_target_group" "store_tg_blue" {
 resource "aws_lb_target_group" "store_tg_green" {
   name        = "store-tg-green"
   port        = var.host_port
-  protocol    = "HTTP"
+  protocol    = "TCP"
   vpc_id      = data.terraform_remote_state.shared.outputs.vpc_id
   target_type = "ip"
 
   health_check {
-    path                = "/health"
-    protocol            = "HTTP"
+    protocol            = "TCP"
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
     unhealthy_threshold = 2
-    matcher             = "200"
   }
 
   tags = {
@@ -112,7 +108,7 @@ resource "aws_lb_target_group" "store_tg_green" {
 resource "aws_lb_listener" "store_listener" {
   load_balancer_arn = data.terraform_remote_state.shared.outputs.lb_arn
   port              = var.host_port
-  protocol          = "HTTP"
+  protocol          = "TCP"
 
   default_action {
     type             = "forward"
@@ -180,7 +176,7 @@ resource "aws_iam_policy" "store_ecr_policy" {
 # Attach the ECR policy to the ECS Task Execution Role
 resource "aws_iam_role_policy_attachment" "store_ecr_attachment" {
   policy_arn = aws_iam_policy.store_ecr_policy.arn
-  role       = data.terraform_remote_state.shared.outputs.ecs_task_execution_role_arn
+  role       = data.terraform_remote_state.shared.outputs.ecs_task_execution_role_name
 }
 
 # Store Task Definition
@@ -234,27 +230,6 @@ resource "aws_ecs_task_definition" "store" {
   task_role_arn      = data.terraform_remote_state.shared.outputs.ecs_task_execution_role_arn
 }
 
-resource "aws_iam_role" "codedeploy_role" {
-  name = "CodeDeployServiceRole"
-
-  assume_role_policy = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [{
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "codedeploy.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "codedeploy_role_policy" {
-  role       = aws_iam_role.codedeploy_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS"
-}
-
 resource "aws_codedeploy_app" "store" {
   name        = "store-codedeploy-app"
   compute_platform = "ECS"
@@ -263,7 +238,7 @@ resource "aws_codedeploy_app" "store" {
 resource "aws_codedeploy_deployment_group" "store" {
   app_name              = aws_codedeploy_app.store.name
   deployment_group_name = "store-deployment-group"
-  service_role_arn      = aws_iam_role.codedeploy_role.arn
+  service_role_arn      = data.terraform_remote_state.shared.outputs.codedeploy_role_arn
 
   deployment_config_name = "CodeDeployDefault.ECSAllAtOnce"
 

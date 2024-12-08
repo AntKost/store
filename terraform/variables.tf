@@ -37,7 +37,7 @@ variable "service_name" {
 variable "container_port" {
   description = "Port on which the Store container listens"
   type        = number
-  default     = 8000
+  default     = 8001
 }
 
 variable "host_port" {
