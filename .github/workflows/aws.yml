@@ -111,7 +111,7 @@ jobs:
                 "TargetService": {
                   "Type": "AWS::ECS::Service",
                   "Properties": {
-                    "TaskDefinition": "$TASK_DEF_ARN",
+                    "TaskDefinition": $TASK_DEF_ARN,
                     "LoadBalancerInfo": {
                       "ContainerName": "store",
                       "ContainerPort": 8001
