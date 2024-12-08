@@ -119,6 +119,18 @@ jobs:
           }
           EOF
           aws ecs describe-task-definition --task-definition "store" --query taskDefinition > task-definition.json
+          cat store_appspec.json | jq --arg key "$TASK_DEF_ARN" '.Resources[].TargetService.Properties.TaskDefinition=$key' \
+          | jq --arg key "$container_port" '.Resources[].TargetService.Properties.LoadBalancerInfo.ContainerPort=$key' \
+          | jq --arg key "$container_name" '.Resources[].TargetService.Properties.LoadBalancerInfo.ContainerName=$key' > store_appspec.json
+          sed -i 's#\\"##g' store_appspec.json
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: update-task-def-image
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: store
+          image: ${{ steps.build.outputs.image_uri }}
 
       - name: ECS task deployment using CodeDeploy
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
