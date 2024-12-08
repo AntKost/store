@@ -118,6 +118,29 @@ resource "aws_lb_listener" "store_listener" {
   tags = {
     Name = "store-listener"
   }
+
+  lifecycle {
+    ignore_changes = [ default_action[0].target_group_arn ]
+  }
+}
+
+resource "aws_lb_listener" "store_listener_green" {
+  load_balancer_arn = data.terraform_remote_state.shared.outputs.lb_arn
+  port              = 8080
+  protocol          = "TCP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.store_tg_green.arn
+  }
+
+  tags = {
+    Name = "store-listener"
+  }
+
+  lifecycle {
+    ignore_changes = [ default_action[0].target_group_arn ]
+  }
 }
 
 # ECR Repository for Store Service
