@@ -119,9 +119,7 @@ jobs:
           }
           EOF
           aws ecs describe-task-definition --task-definition "store" --query taskDefinition > task-definition.json
-          cat store_appspec.json | jq --arg key "$TASK_DEF_ARN" '.Resources[].TargetService.Properties.TaskDefinition=$key' \
-          | jq --arg key "$container_port" '.Resources[].TargetService.Properties.LoadBalancerInfo.ContainerPort=$key' \
-          | jq --arg key "$container_name" '.Resources[].TargetService.Properties.LoadBalancerInfo.ContainerName=$key' > store_appspec.json
+          cat store_appspec.json | jq --arg key "$TASK_DEF_ARN" '.Resources[].TargetService.Properties.TaskDefinition=$key' > store_appspec.json
           sed -i 's#\\"##g' store_appspec.json
 
       - name: Fill in the new image ID in the Amazon ECS task definition
