@@ -55,23 +55,31 @@ jobs:
           echo "store_task_def_last=$STORE_TASK_DEF_LAST" >> $GITHUB_OUTPUT
   
       - name: Terraform Init
-        run: terraform init
+        run: |
+          cd ./terraform
+          terraform init
 
       - name: Terraform Validate
-        run: terraform validate
+        run: |
+          cd ./terraform
+          terraform validate
 
       - name: Terraform Plan
         env:
           TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
         id: plan
-        run: terraform plan -out=tfplan
+        run: |
+          cd ./terraform
+          terraform plan -out=tfplan
 
       - name: Terraform Apply
         id: apply
         env:
           TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve tfplan
+        run: |
+          cd ./terraform
+          terraform apply -auto-approve tfplan
 
       - name: Get Terraform Outputs
         id: tf_outputs
@@ -102,7 +110,7 @@ jobs:
                     "TaskDefinition": "",
                     "LoadBalancerInfo": {
                       "ContainerName": "store",
-                      "ContainerPort": 8000
+                      "ContainerPort": 8001
                     }
                   }
                 }
