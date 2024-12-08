@@ -105,7 +105,7 @@ jobs:
         with:
           task-definition: task-definition.json
           container-name: store
-          image: ${{ steps.build.outputs.image_uri }}
+          image: ${{ steps.build.outputs.IMAGE_URI }}
 
       - name: Generate STORE AppSpec and Task Definition
         if: ${{ steps.get_task_def.outputs.STORE_TASK_DEF_LAST != steps.tf_outputs.outputs.store_task_def_new }}
