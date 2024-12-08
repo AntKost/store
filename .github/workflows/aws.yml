@@ -102,6 +102,7 @@ jobs:
           container_port: 8001
           container_name: store
         run: |
+          export TASK_DEF_ARN=$(aws ecs describe-task-definition --task-definition="$container_name" | jq '.taskDefinition.taskDefinitionArn')
           cat <<EOF > store_appspec.json
           {
             "version": 1,
@@ -110,7 +111,7 @@ jobs:
                 "TargetService": {
                   "Type": "AWS::ECS::Service",
                   "Properties": {
-                    "TaskDefinition": "",
+                    "TaskDefinition": "$TASK_DEF_ARN",
                     "LoadBalancerInfo": {
                       "ContainerName": "store",
                       "ContainerPort": 8001
@@ -122,11 +123,6 @@ jobs:
           }
           EOF
           aws ecs describe-task-definition --task-definition "store" --query taskDefinition > task-definition.json
-          export TASK_DEF_ARN=$(aws ecs describe-task-definition --task-definition="$container_name" | jq '.taskDefinition.taskDefinitionArn')
-          cat store_appspec.json | jq --arg key "$TASK_DEF_ARN" '.Resources[].TargetService.Properties.TaskDefinition=$key' \
-          | jq --arg key "$container_port" '.Resources[].TargetService.Properties.LoadBalancerInfo.ContainerPort=$key' \
-          | jq --arg key "$container_name" '.Resources[].TargetService.Properties.LoadBalancerInfo.ContainerName=$key' > store_appspec.json
-          sed -i 's#\\"##g' store_appspec.json
           cat store_appspec.json
 
       - name: Fill in the new image ID in the Amazon ECS task definition
