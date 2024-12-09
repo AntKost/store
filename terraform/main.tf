@@ -357,4 +357,6 @@ resource "aws_ecs_service" "store" {
   lifecycle {
     ignore_changes = [task_definition, load_balancer]
   }
+
+  depends_on = [aws_lb_listener.store_listener]
 }
