@@ -202,6 +202,11 @@ resource "aws_iam_role_policy_attachment" "store_ecr_attachment" {
   role       = data.terraform_remote_state.shared.outputs.ecs_task_execution_role_name
 }
 
+resource "aws_cloudwatch_log_group" "store_log_group" {
+  name              = "/ecs/store"
+  retention_in_days = 3
+}
+
 # Store Task Definition
 resource "aws_ecs_task_definition" "store" {
   family                   = "store"
@@ -224,6 +229,14 @@ resource "aws_ecs_task_definition" "store" {
       timeout     = 10
       retries     = 5
       startPeriod = 15
+    }
+    logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.store_log_group.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "ecs"
+        }
     }
     environment = [
       {
