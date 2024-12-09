@@ -244,7 +244,7 @@ resource "aws_ecs_task_definition" "store" {
         value = "postgres"
       },
       {
-        name  = "POSTGRES_PASSWORD"
+        name  = "POSTGRES_PASS"
         value = var.db_password
       },
       {
